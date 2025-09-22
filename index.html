@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Should I feed the cat?</title>
+        <!-- Single-file, responsive, offline-capable voting page with Skapi backend -->
+        <style>
+            :root {
+                --bg: #f3e9ff;
+                --ink: #3a2f4c;
+                --accent: #b389ff;
+                --accent-2: #d1b8ff;
+                --yes: #6be074;
+                --no: #ff788a;
+            }
+            html,
+            body {
+                height: 100%;
+                margin: 0;
+            }
+            body {
+                background: var(--bg);
+                color: var(--ink);
+                font-family: ui-monospace, SFMono-Regular, Menlo, Monaco,
+                    Consolas, monospace;
+                image-rendering: pixelated;
+            }
+            .frame {
+                width: min(960px, 94vw);
+                background: white;
+                border: 8px solid var(--accent);
+                box-shadow: 0 8px 0 var(--accent-2), 0 16px 0 #ccbaff;
+                border-radius: 12px;
+                padding: 18px;
+                position: relative;
+                margin: 1rem auto;
+            }
+            .title {
+                font-size: clamp(22px, 6vw, 40px);
+                margin: 0 0 8px 0;
+                letter-spacing: 1px;
+                text-transform: uppercase;
+                font-weight: 800;
+                text-shadow: 0 2px 0 var(--accent-2);
+            }
+            .subtitle {
+                opacity: 0.8;
+                margin: 0 0 18px 0;
+            }
+            .grid {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 16px;
+                align-items: stretch;
+            }
+            .panel {
+                border: 6px solid var(--accent-2);
+                border-radius: 10px;
+                padding: 12px;
+                background: #fff;
+                display: flex;
+                flex-direction: column;
+            }
+            .score {
+                display: grid;
+                grid-template-columns: auto 1fr;
+                align-items: center;
+                gap: 12px;
+                margin-top: 10px;
+                font-weight: 700;
+                text-transform: uppercase;
+            }
+            .bar {
+                height: 16px;
+                background: #eee;
+                border: 3px solid var(--accent-2);
+                border-radius: 8px;
+                overflow: hidden;
+            }
+            .bar > div {
+                height: 100%;
+                width: 0%;
+            }
+            .bar.yes > div {
+                background: var(--yes);
+            }
+            .bar.no > div {
+                background: var(--no);
+            }
+            .btns {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 12px;
+                margin-top: 12px;
+            }
+            button.pixel {
+                appearance: none;
+                border: 0;
+                background: var(--accent);
+                color: white;
+                font-weight: 900;
+                padding: 18px 14px;
+                border-radius: 10px;
+                box-shadow: 0 6px 0 var(--accent-2);
+                text-transform: uppercase;
+                letter-spacing: 1px;
+                cursor: pointer;
+                font-size: clamp(18px, 4.5vw, 26px);
+            }
+            button.pixel:active {
+                transform: translateY(2px);
+                box-shadow: 0 4px 0 var(--accent-2);
+            }
+            .yesBtn {
+                background: var(--yes);
+                box-shadow: 0 6px 0 #b5f1ba;
+                color: #123;
+            }
+            .noBtn {
+                background: var(--no);
+                box-shadow: 0 6px 0 #ffc0c7;
+                color: #321;
+            }
+            .disabled {
+                opacity: 0.6;
+                cursor: not-allowed;
+            }
+            .catWrap {
+                flex: 1;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: #faf6ff;
+                border: 6px solid var(--accent-2);
+                border-radius: 10px;
+                padding: 8px;
+                min-height: 260px;
+            }
+            svg {
+                width: 100%;
+                height: auto;
+                max-height: 360px;
+            }
+            .foot {
+                font-size: 12px;
+                opacity: 0.7;
+                margin-top: 10px;
+            }
+            .pill {
+                display: inline-block;
+                padding: 2px 8px;
+                border: 2px solid var(--accent-2);
+                border-radius: 20px;
+                background: #fff;
+            }
+            .status {
+                margin-left: 8px;
+            }
+            .whisker {
+                stroke: #333;
+                stroke-width: 1;
+            }
+            .tail {
+                stroke: #714acd;
+                stroke-width: 2;
+                fill: none;
+            }
+
+            /* animations */
+            @keyframes blink {
+                0%,
+                92%,
+                100% {
+                    opacity: 0;
+                }
+                93%,
+                95% {
+                    opacity: 1;
+                }
+                96% {
+                    opacity: 0;
+                }
+            }
+            .blink {
+                animation: blink 5s infinite;
+            }
+
+            @keyframes wag {
+                0% {
+                    transform: rotate(6deg);
+                }
+                50% {
+                    transform: rotate(-6deg);
+                }
+                100% {
+                    transform: rotate(6deg);
+                }
+            }
+            .wag {
+                animation: wag 1.2s infinite linear;
+                transform-origin: 150px 100px;
+            }
+            .pixelStroke {
+                shape-rendering: crispEdges;
+            }
+
+            /* responsive: stack panels on small screens */
+            @media (max-width: 720px) {
+                .frame {
+                    width: 100%;
+                    box-sizing: border-box;
+                    margin: 0 auto;
+                }
+                .grid {
+                    grid-template-columns: 1fr;
+                }
+                .catWrap {
+                    min-height: 200px;
+                }
+            }
+            @media (prefers-reduced-motion: reduce) {
+                .blink,
+                .wag {
+                    animation: none !important;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="frame" role="main" aria-live="polite">
+            <h1 class="title">Should I feed the cat?</h1>
+            <p class="subtitle">
+                Vote as many times as you want. First to
+                <strong>10,000</strong> ends the saga.
+            </p>
+
+            <div class="grid">
+                <div class="panel">
+                    <div class="catWrap" id="catWrap" aria-label="cat status">
+                        <!-- Default: waiting cat -->
+                        <svg
+                            id="catSVG"
+                            viewBox="0 0 200 160"
+                            xmlns="http://www.w3.org/2000/svg"
+                        >
+                            <rect
+                                x="0"
+                                y="0"
+                                width="200"
+                                height="160"
+                                fill="#f7f0ff"
+                            />
+                            <ellipse
+                                cx="100"
+                                cy="130"
+                                rx="55"
+                                ry="8"
+                                fill="#e7d9ff"
+                            />
+                            <g class="wag" style="animation-duration: 1.8s">
+                                <path
+                                    d="M150 110 q20 -10 20 -30 q0 -20 -18 -24"
+                                    class="tail"
+                                />
+                            </g>
+                            <path
+                                d="M60 115 q40 35 80 0 q-5 -50 -40 -55 q-35 5 -40 55z"
+                                fill="#e6d0ff"
+                                stroke="#714acd"
+                                stroke-width="2"
+                            />
+                            <path
+                                d="M73 74 l-10 -14 l16 6 z"
+                                fill="#e6d0ff"
+                                stroke="#714acd"
+                                stroke-width="2"
+                            />
+                            <path
+                                d="M127 74 l10 -14 l-16 6 z"
+                                fill="#e6d0ff"
+                                stroke="#714acd"
+                                stroke-width="2"
+                            />
+                            <circle cx="85" cy="92" r="6" fill="#333" />
+                            <circle cx="115" cy="92" r="6" fill="#333" />
+                            <rect
+                                class="blink"
+                                x="79"
+                                y="86"
+                                width="12"
+                                height="12"
+                                fill="#e6d0ff"
+                                stroke="#714acd"
+                                stroke-width="1"
+                                rx="2"
+                            />
+                            <rect
+                                class="blink"
+                                x="109"
+                                y="86"
+                                width="12"
+                                height="12"
+                                fill="#e6d0ff"
+                                stroke="#714acd"
+                                stroke-width="1"
+                                rx="2"
+                            />
+                            <path
+                                d="M96 102 q4 3 8 0"
+                                stroke="#333"
+                                stroke-width="2"
+                                fill="none"
+                            />
+                            <path d="M72 102 h16" class="whisker" />
+                            <path d="M70 98 h18" class="whisker" />
+                            <path d="M112 102 h16" class="whisker" />
+                            <path d="M112 98 h18" class="whisker" />
+                            <rect
+                                x="92"
+                                y="108"
+                                width="16"
+                                height="7"
+                                rx="3"
+                                fill="#ffc77a"
+                                stroke="#b88446"
+                                stroke-width="1"
+                            />
+                            <rect
+                                x="85"
+                                y="110"
+                                width="2"
+                                height="2"
+                                fill="#d7b9ff"
+                            />
+                            <rect
+                                x="88"
+                                y="114"
+                                width="2"
+                                height="2"
+                                fill="#d7b9ff"
+                            />
+                            <rect
+                                x="120"
+                                y="112"
+                                width="2"
+                                height="2"
+                                fill="#d7b9ff"
+                            />
+                        </svg>
+                    </div>
+                    <div class="btns">
+                        <button id="yesBtn" class="pixel yesBtn">
+                            Yes, feed
+                        </button>
+                        <button id="noBtn" class="pixel noBtn">
+                            No, starve
+                        </button>
+                    </div>
+                    <div class="score">
+                        <div>Yes <span id="yesCount">0</span>/10000</div>
+                        <div class="bar yes" aria-hidden="true">
+                            <div id="yesBar"></div>
+                        </div>
+                    </div>
+                    <div class="score">
+                        <div>No <span id="noCount">0</span>/10000</div>
+                        <div class="bar no" aria-hidden="true">
+                            <div id="noBar"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h3 style="margin: 6px 0 10px">
+                        Nerd Stats: skapi-js version 1.0.264
+                    </h3>
+                    <div class="pill">
+                        Backend: <b id="backendState">offline (queued)</b>
+                    </div>
+                    <div
+                        style="
+                            margin-top: 12px;
+                            font-size: 14px;
+                            line-height: 1.45;
+                        "
+                    >
+                        <ul style="margin: 0 0 0 18px; padding: 0">
+                            <li>
+                                Now anonymous users can post data to Skapi
+                                without login.
+                            </li>
+                            <li>
+                                Unlimited votes; each vote is an immutable
+                                record.
+                            </li>
+                            <li>Data persists via Skapi;</li>
+                            <li>
+                                When either side hits 10,000: story ends (happy
+                                or tragic).
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <p class="foot">
+                Project: <b>Should I feed the cat?</b> • Built with
+                <span class="pill">Skapi</span>
+            </p>
+        </div>
+
+        <!-- Skapi CDN. If this fails (offline), app still works and will sync later. -->
+        <script
+            src="https://cdn.jsdelivr.net/npm/skapi-js@1.0.264/dist/skapi.js"
+            onload="window.__skapiLoaded=true"
+            onerror="window.__skapiLoaded=false"
+        ></script>
+
+        <script>
+            (function () {
+                // ======= CONFIG: put your values here =======
+                const SERVICE_ID = "ap22wwR5jAtDMh1XdihI"; // <-- replace with your Skapi Service ID
+                const OWNER_ID = "35dc3959-adff-4b97-9c91-a3cedd7a8b76"; // <-- replace with your Skapi Owner ID
+                const TABLE = "cat_votes"; // public table for votes
+                const TARGET = 10000;
+                const skapi = new Skapi(SERVICE_ID, OWNER_ID);
+                // ===========================================
+
+                const UI = {
+                    yesCount: document.getElementById("yesCount"),
+                    noCount: document.getElementById("noCount"),
+                    yesBar: document.getElementById("yesBar"),
+                    noBar: document.getElementById("noBar"),
+                    yesBtn: document.getElementById("yesBtn"),
+                    noBtn: document.getElementById("noBtn"),
+                    backendState: document.getElementById("backendState"),
+                    syncStatus: document.getElementById("syncStatus"),
+                    catSVG: document.getElementById("catSVG"),
+                };
+
+                const store = {
+                    keyQueue: "cat_vote_queue",
+                    keyCounts: "cat_vote_counts",
+                    readCounts() {
+                        try {
+                            return JSON.parse(
+                                localStorage.getItem(this.keyCounts) ||
+                                    '{"yes":0,"no":0}'
+                            );
+                        } catch (e) {
+                            return { yes: 0, no: 0 };
+                        }
+                    },
+                    writeCounts(c) {
+                        localStorage.setItem(this.keyCounts, JSON.stringify(c));
+                    },
+                };
+
+                function initSkapi() {
+                    UI.backendState.style.color = "#196124";
+                    // optional: poke connection
+                    if (skapi.getConnectionInfo) {
+                        skapi
+                            .getConnectionInfo()
+                            .then((c) => {
+                                UI.backendState.textContent = "online (synced)";
+                            })
+                            .catch(() => {
+                                UI.backendState.textContent =
+                                    "offline (queued)";
+                                UI.backendState.style.color = "#7a3b3b";
+                            });
+                    }
+                }
+
+                function setCat(mode) {
+                    const svg = UI.catSVG;
+                    if (!svg) return;
+                    if (mode === "happy") {
+                        svg.innerHTML = `
+          <rect x="0" y="0" width="200" height="160" fill="#f0fff4"/>
+          <ellipse cx="100" cy="130" rx="55" ry="8" fill="#c9f7cf"/>
+          <g class="wag" style="animation-duration:0.9s">
+            <path d="M150 110 q22 -12 22 -34 q0 -22 -20 -26" fill="#b8f2bf" stroke="#2f7a3d" stroke-width="2"/>
+          </g>
+          <path d="M60 115 q40 35 80 0 q-5 -50 -40 -55 q-35 5 -40 55z" fill="#b8f2bf" stroke="#2f7a3d" stroke-width="2"/>
+          <path d="M70 70 l-12 -10 l18 4 z" fill="#b8f2bf" stroke="#2f7a3d" stroke-width="2"/>
+          <path d="M130 70 l12 -10 l-18 4 z" fill="#b8f2bf" stroke="#2f7a3d" stroke-width="2"/>
+          <circle cx="85" cy="92" r="6" fill="#333"/>
+          <circle cx="115" cy="92" r="6" fill="#333"/>
+          <path d="M92 102 q8 8 16 0" stroke="#333" stroke-width="2" fill="none"/>
+          <path d="M72 102 h16" stroke="#333" stroke-width="2"/>
+          <path d="M70 98 h18" stroke="#333" stroke-width="2"/>
+          <path d="M112 102 h16" stroke="#333" stroke-width="2"/>
+          <path d="M112 98 h18" stroke="#333" stroke-width="2"/>
+          <rect x="84" y="108" width="32" height="10" rx="3" fill="#ffd27a" stroke="#b88446" stroke-width="1"/>
+        `;
+                    } else if (mode === "dead") {
+                        svg.innerHTML = `
+          <rect x="0" y="0" width="200" height="160" fill="#fff0f3"/>
+          <ellipse cx="100" cy="130" rx="55" ry="8" fill="#ffd0d8"/>
+          <path d="M150 110 q18 -10 18 -28 q0 -18 -16 -22" fill="#ffd0d8" stroke="#b23a48" stroke-width="2"/>
+          <path d="M60 115 q40 35 80 0 q-5 -50 -40 -55 q-35 5 -40 55z" fill="#ffd0d8" stroke="#b23a48" stroke-width="2"/>
+          <path d="M73 74 l-10 -14 l16 6 z" fill="#ffd0d8" stroke="#b23a48" stroke-width="2"/>
+          <path d="M127 74 l10 -14 l-16 6 z" fill="#ffd0d8" stroke="#b23a48" stroke-width="2"/>
+          <path d="M80 90 l-8 -8 m8 0 l-8 8" stroke="#333" stroke-width="2"/>
+          <path d="M120 90 l-8 -8 m8 0 l-8 8" stroke="#333" stroke-width="2"/>
+          <path d="M94 104 q6 -4 12 0" stroke="#333" stroke-width="2" fill="none"/>
+          <rect x="92" y="108" width="16" height="7" rx="3" fill="#bbb" stroke="#888" stroke-width="1"/>
+        `;
+                    } else {
+                        svg.innerHTML = `
+          <rect x="0" y="0" width="200" height="160" fill="#f7f0ff"/>
+          <ellipse cx="100" cy="130" rx="55" ry="8" fill="#e7d9ff"/>
+          <g class="wag" style="animation-duration:1.8s"><path d="M150 110 q20 -10 20 -30 q0 -20 -18 -24" class="tail"/></g>
+          <path d="M60 115 q40 35 80 0 q-5 -50 -40 -55 q-35 5 -40 55z" fill="#e6d0ff" stroke="#714acd" stroke-width="2"/>
+          <path d="M73 74 l-10 -14 l16 6 z" fill="#e6d0ff" stroke="#714acd" stroke-width="2"/>
+          <path d="M127 74 l10 -14 l-16 6 z" fill="#e6d0ff" stroke="#714acd" stroke-width="2"/>
+          <circle cx="85" cy="92" r="6" fill="#333"/>
+          <circle cx="115" cy="92" r="6" fill="#333"/>
+          <rect class="blink" x="79" y="86" width="12" height="12" fill="#e6d0ff" stroke="#714acd" stroke-width="1" rx="2"/>
+          <rect class="blink" x="109" y="86" width="12" height="12" fill="#e6d0ff" stroke="#714acd" stroke-width="1" rx="2"/>
+          <path d="M96 102 q4 3 8 0" stroke="#333" stroke-width="2" fill="none"/>
+          <path d="M72 102 h16" stroke="#333" stroke-width="2"/>
+          <path d="M70 98 h18" stroke="#333" stroke-width="2"/>
+          <path d="M112 102 h16" stroke="#333" stroke-width="2"/>
+          <path d="M112 98 h18" stroke="#333" stroke-width="2"/>
+          <rect x="92" y="108" width="16" height="7" rx="3" fill="#ffc77a" stroke="#b88446" stroke-width="1"/>
+          <rect x="85" y="110" width="2" height="2" fill="#d7b9ff"/>
+          <rect x="88" y="114" width="2" height="2" fill="#d7b9ff"/>
+          <rect x="120" y="112" width="2" height="2" fill="#d7b9ff"/>
+        `;
+                    }
+                }
+
+                function clamp(n, min, max) {
+                    return Math.max(min, Math.min(max, n));
+                }
+                function setCounts(yes, no) {
+                    yes = clamp(yes | 0, 0, TARGET);
+                    no = clamp(no | 0, 0, TARGET);
+                    store.writeCounts({ yes, no });
+                    UI.yesCount.textContent = yes;
+                    UI.noCount.textContent = no;
+                    UI.yesBar.style.width = (100 * yes) / TARGET + "%";
+                    UI.noBar.style.width = (100 * no) / TARGET + "%";
+                    if (yes >= TARGET) {
+                        setCat("happy");
+                        UI.yesBtn.classList.add("disabled");
+                        UI.noBtn.classList.add("disabled");
+                        UI.yesBtn.disabled = UI.noBtn.disabled = true;
+                    } else if (no >= TARGET) {
+                        setCat("dead");
+                        UI.yesBtn.classList.add("disabled");
+                        UI.noBtn.classList.add("disabled");
+                        UI.yesBtn.disabled = UI.noBtn.disabled = true;
+                    } else {
+                        setCat("waiting");
+                        UI.yesBtn.disabled = UI.noBtn.disabled = false;
+                        UI.yesBtn.classList.remove("disabled");
+                        UI.noBtn.classList.remove("disabled");
+                    }
+                }
+
+                // ---- Cloud I/O ----
+                async function postVote(tag) {
+                    let p = skapi.postRecord(
+                        { vote: tag },
+                        {
+                            table: { name: TABLE, access_group: "public" },
+                            tags: [tag],
+                            readonly: true,
+                        }
+                    );
+                    localBump(tag);
+                    await p;
+                }
+
+                async function countViaTags() {
+                    async function countViaScan(tag) {
+                        let total = 0;
+                        let res = await skapi.getTags({
+                            table: TABLE,
+                            tag,
+                        });
+                        if (res.list?.[0]) {
+                            total += res.list[0].number_of_records;
+                        }
+                        return total;
+                    }
+                    let [yes = 0, no = 0] = await Promise.all([
+                        countViaScan("Yes"),
+                        countViaScan("No"),
+                    ]);
+                    return { yes, no };
+                }
+
+                async function refreshCounts() {
+                    try {
+                        let { yes, no } = await countViaTags();
+                        setCounts(yes, no);
+                    } catch (e) {
+                        /* ignore and keep local */
+                    }
+                }
+
+                function localBump(tag) {
+                    const c = store.readCounts();
+                    if (tag === "Yes") c.yes++;
+                    else c.no++;
+                    setCounts(c.yes, c.no);
+                }
+
+                // ---- UI handlers ----
+                UI.yesBtn.addEventListener("click", async () => {
+                    await postVote("Yes");
+                });
+
+                UI.noBtn.addEventListener("click", async () => {
+                    await postVote("No");
+                });
+
+                // Also refresh when the tab becomes visible again
+                document.addEventListener("visibilitychange", () => {
+                    if (document.visibilityState === "visible") {
+                        refreshCounts();
+                    }
+                });
+
+                // Boot
+                initSkapi();
+
+                const snap = store.readCounts();
+                setCounts(snap.yes, snap.no);
+                refreshCounts();
+            })();
+        </script>
+    </body>
+</html>
