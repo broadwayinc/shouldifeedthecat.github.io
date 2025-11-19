@@ -402,21 +402,21 @@
                             </li>
                         </ul>
                     </div> -->
-                    <h3 style="margin: 6px 0 10px">Request batching (Skapi 1.1+)</h3>
+                    <h3 style="margin: 6px 0 10px">Request Batching (Skapi 1.1+)</h3>
 
                     <div style="margin-top: 6px; font-size: 14px; line-height: 1.45;">
                         <p style="margin: 0 0 8px 0; opacity: 0.85;">
-                            Skapi can group rapid requests into a single batch to reduce network chatter and improve reliability on flaky connections.
+                            Skapi batches rapid, back-to-back requests to reduce network chatter and improve reliability on slow or flaky connections.
                         </p>
                         <ul style="margin: 0 0 10px 18px; padding: 0;">
-                            <li>Votes made in quick succession are queued, then sent together.</li>
-                            <li>Change the batch size below and hammer the vote buttons to watch the queue update live.</li>
-                            <li>You would need to throttle your network to actually see it in action</li>
+                            <li>Votes made in quick succession queue up and are sent together.</li>
+                            <li>Adjust the batch size below, then click the vote buttons quickly to watch the queue update live.</li>
+                            <li>Tip: Throttle your network in DevTools to better observe batching.</li>
                         </ul>
                     </div>
 
                     <div class="pill" style="display: inline-flex; align-items: center; gap: 8px; margin: 6px 0; padding: 12px;">
-                        <label for="queueInput" style="font-weight: 700; text-transform: uppercase;">Batch size</label>
+                        <label for="queueInput" style="font-weight: 700; text-transform: uppercase;">Requests per Batch</label>
                         <input
                             type="number"
                             id="queueInput"
@@ -428,12 +428,11 @@
                             style="width: 72px; font-size: 16px; padding: 4px;"
                             onchange="skapi.requestBatchSize = Math.max(1, Math.min(10000, this.valueAsNumber || 1))"
                         />
-                        <span class="status" style="opacity: 0.8;">applies instantly</span>
                     </div>
 
                     <div class="pill" id="queueCallback" style="white-space: pre-line; margin-top: 8px; padding: 12px;">Batch Size: 3
                         Batch to process: 0
-                        Items in queue: 0
+                        Requests in queue: 0
                     </div>
                     <br>
                     <a
@@ -512,7 +511,7 @@
                         let itemsToProcess = process.itemsToProcess;
                         
                         const el = document.getElementById("queueCallback");
-                        el.textContent = `Batch Size: ${skapi.requestBatchSize}\nBatch to process: ${batchToProcess}\nItems in queue: ${itemsToProcess}`;
+                        el.textContent = `Batch Size: ${skapi.requestBatchSize}\nBatch to process: ${batchToProcess}\nRequests in queue: ${itemsToProcess}`;
                     }
                 },
             });
