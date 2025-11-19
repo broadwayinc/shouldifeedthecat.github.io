@@ -373,12 +373,13 @@
 
                 <div class="panel">
                     <h3 style="margin: 6px 0 10px">
-                        Nerd Stats: skapi-js version 1.0.264
+                        Nerd Stats: skapi-js version 1.1.10
                     </h3>
                     <div class="pill">
                         Backend: <b id="backendState">offline (queued)</b>
                     </div>
-                    <div
+                    <br>
+                    <!-- <div
                         style="
                             margin-top: 12px;
                             font-size: 14px;
@@ -400,8 +401,90 @@
                                 or tragic).
                             </li>
                         </ul>
+                    </div> -->
+                    <h3 style="margin: 6px 0 10px">Request batching (Skapi 1.1+)</h3>
+
+                    <div style="margin-top: 6px; font-size: 14px; line-height: 1.45;">
+                        <p style="margin: 0 0 8px 0; opacity: 0.85;">
+                            Skapi can group rapid requests into a single batch to reduce network chatter and improve reliability on flaky connections.
+                        </p>
+                        <ul style="margin: 0 0 10px 18px; padding: 0;">
+                            <li>Votes made in quick succession are queued, then sent together.</li>
+                            <li>Change the batch size below and hammer the vote buttons to watch the queue update live.</li>
+                            <li>You would need to throttle your network to actually see it in action</li>
+                        </ul>
                     </div>
+
+                    <div class="pill" style="display: inline-flex; align-items: center; gap: 8px; margin: 6px 0; padding: 12px;">
+                        <label for="queueInput" style="font-weight: 700; text-transform: uppercase;">Batch size</label>
+                        <input
+                            type="number"
+                            id="queueInput"
+                            value="3"
+                            min="1"
+                            max="10000"
+                            step="1"
+                            title="Number of requests per batch"
+                            style="width: 72px; font-size: 16px; padding: 4px;"
+                            onchange="skapi.requestBatchSize = Math.max(1, Math.min(10000, this.valueAsNumber || 1))"
+                        />
+                        <span class="status" style="opacity: 0.8;">applies instantly</span>
+                    </div>
+
+                    <div class="pill" id="queueCallback" style="white-space: pre-line; margin-top: 8px; padding: 12px;">Batch Size: 3
+                        Batch to process: 0
+                        Items in queue: 0
+                    </div>
+                    <br>
+                    <a
+                        href="https://docs.skapi.com/introduction/getting-started.html#_4-advanced-settings"
+                        target="_blank"
+                    >
+                        Docs: Advanced settings
+                    </a>
                 </div>
+
+                <!-- <div class="panel">
+                    <h3 style="margin: 6px 0 10px">Request batching (Skapi 1.1+)</h3>
+
+                    <div style="margin-top: 6px; font-size: 14px; line-height: 1.45;">
+                        <p style="margin: 0 0 8px 0; opacity: 0.85;">
+                            Skapi can group rapid requests into a single batch to reduce network chatter and improve reliability on flaky connections.
+                        </p>
+                        <ul style="margin: 0 0 10px 18px; padding: 0;">
+                            <li>Votes made in quick succession are queued, then sent together.</li>
+                            <li>Change the batch size below and hammer the vote buttons to watch the queue update live.</li>
+                        </ul>
+                    </div>
+
+                    <div class="pill" style="display: inline-flex; align-items: center; gap: 8px; margin: 6px 0; padding: 12px;">
+                        <label for="queueInput" style="font-weight: 700; text-transform: uppercase;">Batch size</label>
+                        <input
+                            type="number"
+                            id="queueInput"
+                            value="5"
+                            min="1"
+                            max="10000"
+                            step="1"
+                            title="Number of requests per batch"
+                            style="width: 72px; font-size: 16px; padding: 4px;"
+                            onchange="skapi.requestBatchSize = Math.max(1, Math.min(10000, this.valueAsNumber || 1))"
+                        />
+                        <span class="status" style="opacity: 0.8;">applies instantly</span>
+                    </div>
+
+                    <div class="pill" id="queueCallback" style="white-space: pre-line; margin-top: 8px; padding: 12px;">Batch Size: 5
+                        Batch to process: 0
+                        Items in queue: 0
+                    </div>
+                    <br>
+                    <a
+                        href="https://docs.skapi.com/introduction/getting-started.html#_4-advanced-settings"
+                        target="_blank"
+                    >
+                        Docs: Advanced settings
+                    </a>
+                </div> -->
             </div>
 
             <p class="foot">
@@ -412,20 +495,33 @@
 
         <!-- Skapi CDN. If this fails (offline), app still works and will sync later. -->
         <script
-            src="https://cdn.jsdelivr.net/npm/skapi-js@1.0.264/dist/skapi.js"
+            src="https://cdn.jsdelivr.net/npm/skapi-js@1.1.10/dist/skapi.js"
             onload="window.__skapiLoaded=true"
             onerror="window.__skapiLoaded=false"
         ></script>
 
         <script>
+            
+            const SERVICE_ID = "ap22wwR5jAtDMh1XdihI"; // <-- replace with your Skapi Service ID
+            const OWNER_ID = "35dc3959-adff-4b97-9c91-a3cedd7a8b76"; // <-- replace with your Skapi Owner ID
+            const skapi = new Skapi(SERVICE_ID, OWNER_ID, {
+                requestBatchSize: 3,
+                eventListener: {
+                    onBatchProcess:(process) => {
+                        let batchToProcess = process.batchToProcess;
+                        let itemsToProcess = process.itemsToProcess;
+                        
+                        const el = document.getElementById("queueCallback");
+                        el.textContent = `Batch Size: ${skapi.requestBatchSize}\nBatch to process: ${batchToProcess}\nItems in queue: ${itemsToProcess}`;
+                    }
+                },
+            });
+            // ===========================================
+            skapi.version();
             (function () {
                 // ======= CONFIG: put your values here =======
-                const SERVICE_ID = "ap22wwR5jAtDMh1XdihI"; // <-- replace with your Skapi Service ID
-                const OWNER_ID = "35dc3959-adff-4b97-9c91-a3cedd7a8b76"; // <-- replace with your Skapi Owner ID
                 const TABLE = "cat_votes"; // public table for votes
                 const TARGET = 10000;
-                const skapi = new Skapi(SERVICE_ID, OWNER_ID);
-                // ===========================================
 
                 const UI = {
                     yesCount: document.getElementById("yesCount"),
@@ -566,7 +662,7 @@
                 // ---- Cloud I/O ----
                 async function postVote(tag) {
                     let p = skapi.postRecord(
-                        { vote: tag },
+                        { vote: tag, unq: skapi.util.generateRandom(6) },
                         {
                             table: { name: TABLE, access_group: "public" },
                             tags: [tag],
